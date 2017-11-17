@@ -21,28 +21,48 @@ def get_xy_coords(dst):
     
     Returns
     -------
-        (dx, dy) : tuple with coordinate arrays
+        (x, y) : tuple with coordinate arrays
     """
     try:
-        dx = (dst.bounds.right - dst.bounds.left) / dst.width
-        dy = (dst.bounds.top - dst.bounds.bottom) / dst.height
+        dx = dst.res[0]
+        dy = dst.res[1]
     except:
         raise
 
-    return dx, dy
+    x = np.linspace(dst.bounds.left + dx/2., dst.bounds.right - dx/2., dst.width)
+    y = np.linspace(dst.bounds.bottom + dy/2., dst.bounds.top - dy/2., dst.height)
+
+    return x, y
 
 
 def _extract_polygon(src_data, dx, dy, minval, maxval, transform=None):
     """
     """
-    src_gauss = gaussian(np.where(src_data>minval, 1, 0), 1.2)
-    mask = np.where(src_gauss >= 0.5, 1, 0)
+    src_gauss = gaussian(np.where(src_data > minval, 1, 0),
+                         sigma=0.85,
+                         preserve_range=True)
+
+    mask = src_gauss > 0.5
     # TODO add matplotlib contouring here
+    x, y = np.meshgrid(dx, dy)
+    cs = plt.contour(x,
+                     y,
+                     np.flipud(src_gauss),
+                     levels=[0.5])
+
+    polygons = []
+
+    for i in range(len(cs.collections)):
+        for p in cs.collections[i].get_paths():
+            v = p.vertices
+            x = v[:, 0]
+            y = v[:, 1]
+            poly = Polygon([(i[0], i[1]) for i in zip(x, y)])
+            polygons.append(poly)
+
 
     results = ({'properties': {'value': minval}, 'geometry': s}
-               for i, (s, v) in enumerate(shapes(src_gauss.astype(rst.float32),
-                                          mask=mask,
-                                          transform=transform)))
+               for i, s in enumerate(polygons))
     geoms=list(results)
     return geoms
 
@@ -56,7 +76,7 @@ def extract_polygons(src_data, levels, dx, dy, transform=None, maxval=101):
 
     for level in levels:
 
-        output_path = 'cntrs-{:02d}.geojson'.format(level)
+        output_path = 'cntrs-{:02d}.geojson'.format(int(level))
         if os.path.exists(output_path):
             os.remove(output_path)
 
@@ -69,8 +89,9 @@ def extract_polygons(src_data, levels, dx, dy, transform=None, maxval=101):
 
         gpd_orig = gp.GeoDataFrame.from_features(geoms)
         gpd_current = gpd_orig
-
         gpd_current.crs = {'init': 'epsg:3413'}
+        # gpd_current.to_file(output_path, driver='GeoJSON')
+
 
         if gpd_prev is None:
             gpd_prev = gpd_current
@@ -92,9 +113,12 @@ def main():
     src = rst.open('/home/mikhail/Projects/IsfrekvensPolygons/isfrekvens-masked_epsg3413.tif')
     dx, dy = get_xy_coords(src)
     src_data = src.read(1)
-    levels = [1, 10, 40, 70, 90, 99][::-1]
+    levels = [0.1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 99.9][::-1]
 
-    extract_polygons(src_data, levels, dx, dy, transform=src.transform)
+    extract_polygons(src_data,
+                     levels,
+                     dx,dy,
+                     transform=src.transform)
 
 if __name__ == "__main__":
     main()
