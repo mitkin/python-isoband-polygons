@@ -6,10 +6,12 @@ from rasterio.features import shapes
 import geopandas as gp
 import pandas as pd
 import os
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, MultiPolygon
 from rdp import rdp
 from skimage.filters import gaussian
-from matplotlib import pyplot as plt 
+from matplotlib import pyplot as plt
+from contours.core import shapely_formatter as shapely_fmt
+from contours.quad import QuadContourGenerator
 
 
 def get_xy_coords(dst):
@@ -35,39 +37,27 @@ def get_xy_coords(dst):
     return x, y
 
 
-def _extract_polygon(src_data, dx, dy, minval, maxval, transform=None):
+def _extract_polygon(src_data, dx, dy, minval, maxval, transform=None, src=None):
     """
     """
     src_gauss = gaussian(np.where(src_data > minval, 1, 0),
-                         sigma=0.85,
+                         sigma=0.75,
                          preserve_range=True)
 
-    mask = src_gauss > 0.5
-    # TODO add matplotlib contouring here
+    # src_gauss = np.ma.array(src_gauss, mask=(src_data==0))
+
     x, y = np.meshgrid(dx, dy)
-    cs = plt.contour(x,
-                     y,
-                     np.flipud(src_gauss),
-                     levels=[0.5])
+    c = QuadContourGenerator.from_rectilinear(dx, dy, np.flipud(src_gauss), shapely_fmt)
 
-    polygons = []
-
-    for i in range(len(cs.collections)):
-        for p in cs.collections[i].get_paths():
-            v = p.vertices
-            x = v[:, 0]
-            y = v[:, 1]
-            poly = Polygon([(i[0], i[1]) for i in zip(x, y)])
-            polygons.append(poly)
-
+    contour = c.filled_contour(min=0.354, max=100.0)
 
     results = ({'properties': {'value': minval}, 'geometry': s}
-               for i, s in enumerate(polygons))
+               for i, s in enumerate(contour))
     geoms=list(results)
     return geoms
 
 
-def extract_polygons(src_data, levels, dx, dy, transform=None, maxval=101):
+def extract_polygons(src_data, levels, dx, dy, transform=None, maxval=101, src=None):
     """
     """
 
@@ -85,12 +75,12 @@ def extract_polygons(src_data, levels, dx, dy, transform=None, maxval=101):
                                  dy,
                                  level,
                                  maxval,
-                                 transform=transform)
+                                 transform=transform,
+                                 src=src)
 
         gpd_orig = gp.GeoDataFrame.from_features(geoms)
         gpd_current = gpd_orig
         gpd_current.crs = {'init': 'epsg:3413'}
-        # gpd_current.to_file(output_path, driver='GeoJSON')
 
 
         if gpd_prev is None:
@@ -118,7 +108,8 @@ def main():
     extract_polygons(src_data,
                      levels,
                      dx,dy,
-                     transform=src.transform)
+                     transform=src.transform,
+                     src=src)
 
 if __name__ == "__main__":
     main()
