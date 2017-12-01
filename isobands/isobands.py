@@ -10,6 +10,7 @@ def parse_arguments(arguments=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("input_file",
                         type=argparse.FileType('r'))
+    parser.parse_args()
     return parser
 
 
