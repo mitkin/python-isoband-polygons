@@ -8,7 +8,10 @@ setup(
     license='',
     author='Mikhail Itkin',
     author_email='itkin.m@gmail.com',
-    description='Python package for creating polygons based on filled contours from the raster data',
+    description='Python package for creating contoured polygons',
     install_requires=['rasterio',
-                  'geopandas']
+                      'geopandas',
+                      'contours',
+                      'scikit-image'],
+    test_requires=['nose']
 )
