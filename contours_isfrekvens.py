@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
+import numpy as np
 import os
 
 import geopandas as gp
-import numpy as np
 import pandas as pd
 import rasterio as rst
 from contours.core import shapely_formatter as shapely_fmt
@@ -37,7 +37,7 @@ def get_xy_coords(dst):
 def _extract_polygon(src_data, dx, dy, minval, maxval):
     """
     """
-    src_gauss = gaussian(np.where((src_data > minval)*(src_data<=maxval), 1, 0),
+    src_gauss = gaussian(np.where((src_data > minval) * (src_data <= maxval), 1, 0),
                          sigma=0.75,
                          preserve_range=True)
 
@@ -110,4 +110,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
