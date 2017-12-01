@@ -93,13 +93,23 @@ def extract_polygons(src_data, levels, dx, dy, transform=None, maxval=101, src=N
 
 
 def main():
-    # src = rst.open('./issmall.tif')/
-    src = rst.open('/home/mikhail/Projects/IsfrekvensPolygons/isfrekvens-masked_epsg3413.tif')
-    # src = rst.open('/home/mikhail/Downloads/isfrekvens-1/icechart_seaicefrequencymap198604_201504_EPSG3575.tif')
-    # src = rst.open('/tmp/islarge.tif')
+    fname = "some_name"
+    src = rst.open(fname)
     dx, dy = get_xy_coords(src)
     src_data = src.read(1)
-    levels = [0.1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 99.9][::-1]
+    levels = [
+              0.1,
+              10,
+              20,
+              30,
+              40,
+              50,
+              60,
+              70,
+              80,
+              90,
+              99.9
+             ][::-1]
 
     extract_polygons(src_data,
                      levels,
